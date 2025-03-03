@@ -46,37 +46,61 @@ const CategoryButtons = ({
       id: "suv",
       icon: <Truck size={24} />,
       label: "SUVs",
-      onClick: () => console.log("SUVs clicked"),
+      onClick: () => {
+        const searchParams = new URLSearchParams();
+        searchParams.set("keyword", "SUVs");
+        window.location.href = `/search?${searchParams.toString()}`;
+      },
     },
     {
       id: "electric",
       icon: <Zap size={24} />,
       label: "Electric Vehicles",
-      onClick: () => console.log("Electric Vehicles clicked"),
+      onClick: () => {
+        const searchParams = new URLSearchParams();
+        searchParams.set("keyword", "Electric");
+        window.location.href = `/search?${searchParams.toString()}`;
+      },
     },
     {
       id: "budget",
       icon: <DollarSign size={24} />,
       label: "Budget Cars",
-      onClick: () => console.log("Budget Cars clicked"),
+      onClick: () => {
+        const searchParams = new URLSearchParams();
+        searchParams.set("maxPrice", "20000");
+        window.location.href = `/search?${searchParams.toString()}`;
+      },
     },
     {
       id: "luxury",
       icon: <Car size={24} />,
       label: "Luxury Cars",
-      onClick: () => console.log("Luxury Cars clicked"),
+      onClick: () => {
+        const searchParams = new URLSearchParams();
+        searchParams.set("minPrice", "50000");
+        window.location.href = `/search?${searchParams.toString()}`;
+      },
     },
     {
       id: "performance",
       icon: <Gauge size={24} />,
       label: "Performance",
-      onClick: () => console.log("Performance clicked"),
+      onClick: () => {
+        const searchParams = new URLSearchParams();
+        searchParams.set("keyword", "Performance");
+        window.location.href = `/search?${searchParams.toString()}`;
+      },
     },
     {
       id: "family",
       icon: <Users size={24} />,
       label: "Family Cars",
-      onClick: () => console.log("Family Cars clicked"),
+      onClick: () => {
+        const searchParams = new URLSearchParams();
+        searchParams.set("keyword", "Family");
+        window.location.href = `/search?${searchParams.toString()}`;
+      },
     },
   ],
 }: CategoryButtonsProps) => {

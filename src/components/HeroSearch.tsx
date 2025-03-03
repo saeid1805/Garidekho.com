@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import {
 } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { SearchFilters } from "./SearchBar";
+import carApiService from "../services/api";
 
 interface HeroSearchProps {
   onSearch?: (filters: SearchFilters) => void;
@@ -59,6 +61,7 @@ const HeroSearch = ({
   title = "Find Your Perfect Car",
   subtitle = "Search thousands of new and used vehicles all in one place",
 }: HeroSearchProps) => {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<SearchFilters>({
     make: "All Makes",
     model: "All Models",
@@ -104,23 +107,49 @@ const HeroSearch = ({
     });
   };
 
-  const handleSearch = () => {
-    onSearch(filters);
-    // Navigate to search results page
-    const searchParams = new URLSearchParams();
-    if (filters.make && filters.make !== "All Makes")
-      searchParams.set("make", filters.make);
-    if (filters.model && filters.model !== "All Models")
-      searchParams.set("model", filters.model);
-    if (filters.priceRange[0] > 0)
-      searchParams.set("minPrice", filters.priceRange[0].toString());
-    if (filters.priceRange[1] < 100000)
-      searchParams.set("maxPrice", filters.priceRange[1].toString());
-    if (filters.condition && filters.condition !== "all")
-      searchParams.set("condition", filters.condition);
-    if (filters.keyword) searchParams.set("keyword", filters.keyword);
+  const handleSearch = async () => {
+    try {
+      // Call the API with the filters
+      const searchResults = await carApiService.searchCars(filters);
 
-    window.location.href = `/search?${searchParams.toString()}`;
+      // Call the onSearch prop with the filters and results
+      onSearch(filters);
+
+      // Navigate to search results page with query parameters
+      const searchParams = new URLSearchParams();
+      if (filters.make && filters.make !== "All Makes")
+        searchParams.set("make", filters.make);
+      if (filters.model && filters.model !== "All Models")
+        searchParams.set("model", filters.model);
+      if (filters.priceRange[0] > 0)
+        searchParams.set("minPrice", filters.priceRange[0].toString());
+      if (filters.priceRange[1] < 100000)
+        searchParams.set("maxPrice", filters.priceRange[1].toString());
+      if (filters.condition && filters.condition !== "all")
+        searchParams.set("condition", filters.condition);
+      if (filters.keyword) searchParams.set("keyword", filters.keyword);
+
+      // Use navigate for a smoother experience
+      const searchUrl = `/search?${searchParams.toString()}`;
+      navigate(searchUrl);
+    } catch (error) {
+      console.error("Error searching cars:", error);
+      // Navigate anyway even if the API call fails
+      const searchParams = new URLSearchParams();
+      if (filters.make && filters.make !== "All Makes")
+        searchParams.set("make", filters.make);
+      if (filters.model && filters.model !== "All Models")
+        searchParams.set("model", filters.model);
+      if (filters.priceRange[0] > 0)
+        searchParams.set("minPrice", filters.priceRange[0].toString());
+      if (filters.priceRange[1] < 100000)
+        searchParams.set("maxPrice", filters.priceRange[1].toString());
+      if (filters.condition && filters.condition !== "all")
+        searchParams.set("condition", filters.condition);
+      if (filters.keyword) searchParams.set("keyword", filters.keyword);
+
+      navigate(`/search?${searchParams.toString()}`);
+    }
   };
 
   const formatPrice = (price: number) => {

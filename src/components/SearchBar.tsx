@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -10,6 +11,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Slider } from "./ui/slider";
+import carApiService from "../services/api";
 
 interface SearchBarProps {
   onSearch?: (filters: SearchFilters) => void;
@@ -30,6 +32,7 @@ const SearchBar = ({
   className = "",
   initialFilters,
 }: SearchBarProps) => {
+  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     make: initialFilters?.make || "",
@@ -128,12 +131,53 @@ const SearchBar = ({
     });
   };
 
-  const handleSearch = () => {
-    if (onSearch) {
-      onSearch(filters);
+  const handleSearch = async () => {
+    try {
+      // Call the API with the filters
+      const searchResults = await carApiService.searchCars(filters);
+
+      // Call the onSearch prop with the filters and results if provided
+      if (onSearch) {
+        onSearch(filters);
+      }
+
+      // Collapse the expanded view after search
+      setIsExpanded(false);
+
+      // Navigate to search results page with query parameters
+      const searchParams = new URLSearchParams();
+      if (filters.make && filters.make !== "All Makes")
+        searchParams.set("make", filters.make);
+      if (filters.model && filters.model !== "All Models")
+        searchParams.set("model", filters.model);
+      if (filters.priceRange[0] > 0)
+        searchParams.set("minPrice", filters.priceRange[0].toString());
+      if (filters.priceRange[1] < 100000)
+        searchParams.set("maxPrice", filters.priceRange[1].toString());
+      if (filters.condition && filters.condition !== "all")
+        searchParams.set("condition", filters.condition);
+      if (filters.keyword) searchParams.set("keyword", filters.keyword);
+
+      navigate(`/search?${searchParams.toString()}`);
+    } catch (error) {
+      console.error("Error searching cars:", error);
+      // Navigate anyway even if the API call fails
+      const searchParams = new URLSearchParams();
+      if (filters.make && filters.make !== "All Makes")
+        searchParams.set("make", filters.make);
+      if (filters.model && filters.model !== "All Models")
+        searchParams.set("model", filters.model);
+      if (filters.priceRange[0] > 0)
+        searchParams.set("minPrice", filters.priceRange[0].toString());
+      if (filters.priceRange[1] < 100000)
+        searchParams.set("maxPrice", filters.priceRange[1].toString());
+      if (filters.condition && filters.condition !== "all")
+        searchParams.set("condition", filters.condition);
+      if (filters.keyword) searchParams.set("keyword", filters.keyword);
+
+      navigate(`/search?${searchParams.toString()}`);
+      setIsExpanded(false);
     }
-    // Optionally collapse the expanded view after search
-    setIsExpanded(false);
   };
 
   const handleReset = () => {

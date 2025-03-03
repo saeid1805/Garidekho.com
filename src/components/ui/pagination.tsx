@@ -12,6 +12,7 @@ const Pagination = ({ className, ...props }: React.ComponentProps<"nav">) => (
     {...props}
   />
 );
+Pagination.displayName = "Pagination";
 
 const PaginationContent = React.forwardRef<
   HTMLUListElement,
@@ -48,9 +49,11 @@ const PaginationLink = ({
     aria-current={isActive ? "page" : undefined}
     className={cn(
       buttonVariants({
-        variant: isActive ? "default" : "outline",
+        variant: isActive ? "outline" : "ghost",
         size,
       }),
+      isActive &&
+        "bg-blue-50 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-600",
       className,
     )}
     {...props}

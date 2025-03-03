@@ -53,6 +53,9 @@ const SearchResultsPage = () => {
 
   // Get search params from URL
   const searchParams = new URLSearchParams(location.search);
+  const pageParam = searchParams.get("page");
+  const initialPage = pageParam ? parseInt(pageParam) : 1;
+
   const initialFilters: SearchFilters = {
     make: searchParams.get("make") || "",
     model: searchParams.get("model") || "",
@@ -63,6 +66,13 @@ const SearchResultsPage = () => {
     condition: searchParams.get("condition") || "all",
     keyword: searchParams.get("keyword") || "",
   };
+
+  // Initialize current page from URL if available
+  useEffect(() => {
+    if (initialPage && initialPage !== currentPage) {
+      setCurrentPage(initialPage);
+    }
+  }, []);
 
   const [filters, setFilters] = useState<SearchFilters>(initialFilters);
 
@@ -152,6 +162,11 @@ const SearchResultsPage = () => {
   // Handle page change
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    // Update URL with page parameter
+    const params = new URLSearchParams(window.location.search);
+    params.set("page", page.toString());
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.pushState({ path: newUrl }, "", newUrl);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
