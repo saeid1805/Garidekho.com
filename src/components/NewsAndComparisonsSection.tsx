@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import NewsArticle from "./NewsArticle";
-import CarComparison from "./CarComparison";
 import { Button } from "./ui/button";
 import {
   ChevronRight,
@@ -9,58 +8,12 @@ import {
   BarChart2,
   Loader2,
   AlertCircle,
-  RefreshCcw,
 } from "lucide-react";
-import carApiService, {
-  NewsArticle as NewsArticleType,
-  CarComparison as CarComparisonType,
-} from "../services/api";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "./ui/pagination";
+import carApiService, { NewsArticle as NewsArticleType } from "../services/api";
 
 interface NewsAndComparisonsSectionProps {
   title?: string;
   description?: string;
-  newsArticles?: Array<{
-    id: string;
-    title: string;
-    description: string;
-    date: string;
-    category: string;
-    imageUrl: string;
-    url: string;
-  }>;
-  carComparisons?: Array<{
-    id: string;
-    car1: {
-      id: string;
-      name: string;
-      image: string;
-      price: number;
-      year: number;
-    };
-    car2: {
-      id: string;
-      name: string;
-      image: string;
-      price: number;
-      year: number;
-    };
-    specs: Array<{
-      name: string;
-      car1Value: string | number;
-      car2Value: string | number;
-      winner?: 1 | 2;
-    }>;
-    comparisonLink: string;
-  }>;
   onNewsClick?: (articleId: string) => void;
   onComparisonClick?: (comparisonId: string) => void;
 }
@@ -68,30 +21,15 @@ interface NewsAndComparisonsSectionProps {
 const NewsAndComparisonsSection = ({
   title = "Automotive News & Comparisons",
   description = "Stay informed with the latest automotive news and detailed vehicle comparisons to help you make the right choice.",
-  newsArticles = [],
-  carComparisons = [],
   onNewsClick = () => {},
   onComparisonClick = () => {},
 }: NewsAndComparisonsSectionProps) => {
   const [activeTab, setActiveTab] = useState("news");
-  const [loadedNewsArticles, setLoadedNewsArticles] = useState<
-    NewsArticleType[]
-  >([]);
-  const [loadedCarComparisons, setLoadedCarComparisons] = useState<
-    CarComparisonType[]
-  >([]);
+  const [newsArticles, setNewsArticles] = useState<NewsArticleType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination state
-  const [newsCurrentPage, setNewsCurrentPage] = useState(1);
-  const [comparisonCurrentPage, setComparisonCurrentPage] = useState(1);
-  const [newsItemsPerPage] = useState(6);
-  const [comparisonItemsPerPage] = useState(2);
-  const [newsTotalPages, setNewsTotalPages] = useState(1);
-  const [comparisonTotalPages, setComparisonTotalPages] = useState(1);
-
-  // Fetch news articles and car comparisons on component mount
+  // Fetch news articles on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -101,14 +39,7 @@ const NewsAndComparisonsSection = ({
         // Fetch data based on active tab
         if (activeTab === "news") {
           const articles = await carApiService.getNewsArticles();
-          setLoadedNewsArticles(articles);
-          setNewsTotalPages(Math.ceil(articles.length / newsItemsPerPage));
-        } else if (activeTab === "comparisons") {
-          const comparisons = await carApiService.getCarComparisons();
-          setLoadedCarComparisons(comparisons);
-          setComparisonTotalPages(
-            Math.ceil(comparisons.length / comparisonItemsPerPage),
-          );
+          setNewsArticles(articles);
         }
       } catch (err) {
         console.error(`Error fetching ${activeTab} data:`, err);
@@ -119,99 +50,47 @@ const NewsAndComparisonsSection = ({
     };
 
     fetchData();
-  }, [activeTab, newsItemsPerPage, comparisonItemsPerPage]);
+  }, [activeTab]);
 
-  // Initial data load for both tabs to have data ready when switching
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        // Load news articles if not already loaded
-        if (loadedNewsArticles.length === 0) {
-          const articles = await carApiService.getNewsArticles();
-          setLoadedNewsArticles(articles);
-          setNewsTotalPages(Math.ceil(articles.length / newsItemsPerPage));
-        }
+  // Sample comparison data (since we don't have a real API for this yet)
+  const sampleComparisons = [
+    {
+      id: "comp-1",
+      title: "2023 Tesla Model 3 vs. 2023 BMW i4",
+      description:
+        "Comparing two of the most popular electric sedans on the market today.",
+      imageUrl:
+        "https://images.unsplash.com/photo-1560958089-b8a1929cea89?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      date: "June 12, 2023",
+      category: "Electric Vehicles",
+      url: "/comparisons/tesla-model-3-vs-bmw-i4",
+    },
+    {
+      id: "comp-2",
+      title: "SUV Showdown: Toyota RAV4 vs. Honda CR-V",
+      description:
+        "Which popular compact SUV offers the best value and features for families?",
+      imageUrl:
+        "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      date: "May 28, 2023",
+      category: "SUVs",
+      url: "/comparisons/toyota-rav4-vs-honda-crv",
+    },
+    {
+      id: "comp-3",
+      title: "Luxury Sedan Battle: Mercedes E-Class vs. BMW 5 Series",
+      description:
+        "We compare these two German luxury sedans to see which offers the best driving experience.",
+      imageUrl:
+        "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+      date: "April 15, 2023",
+      category: "Luxury",
+      url: "/comparisons/mercedes-e-class-vs-bmw-5-series",
+    },
+  ];
 
-        // Load comparisons if not already loaded
-        if (loadedCarComparisons.length === 0) {
-          const comparisons = await carApiService.getCarComparisons();
-          setLoadedCarComparisons(comparisons);
-          setComparisonTotalPages(
-            Math.ceil(comparisons.length / comparisonItemsPerPage),
-          );
-        }
-      } catch (err) {
-        console.error("Error loading initial data:", err);
-        // Don't set error here as it will be handled by the tab-specific loading
-      }
-    };
-
-    loadInitialData();
-  }, [newsItemsPerPage, comparisonItemsPerPage]);
-
-  // Handle tab change
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-
-    // Reset to first page when changing tabs
-    if (value === "news") {
-      setNewsCurrentPage(1);
-    } else if (value === "comparisons") {
-      setComparisonCurrentPage(1);
-    }
-
-    // If we're switching to a tab and don't have data yet, but we're not in an error state,
-    // trigger a load
-    if (value === "news" && loadedNewsArticles.length === 0 && !error) {
-      setIsLoading(true);
-      carApiService
-        .getNewsArticles()
-        .then((articles) => {
-          setLoadedNewsArticles(articles);
-          setNewsTotalPages(Math.ceil(articles.length / newsItemsPerPage));
-        })
-        .catch((err) => {
-          console.error("Error fetching news articles:", err);
-          setError("Failed to load news articles. Please try again later.");
-        })
-        .finally(() => setIsLoading(false));
-    } else if (
-      value === "comparisons" &&
-      loadedCarComparisons.length === 0 &&
-      !error
-    ) {
-      setIsLoading(true);
-      carApiService
-        .getCarComparisons()
-        .then((comparisons) => {
-          setLoadedCarComparisons(comparisons);
-          setComparisonTotalPages(
-            Math.ceil(comparisons.length / comparisonItemsPerPage),
-          );
-        })
-        .catch((err) => {
-          console.error("Error fetching car comparisons:", err);
-          setError("Failed to load car comparisons. Please try again later.");
-        })
-        .finally(() => setIsLoading(false));
-    }
-  };
-
-  // Get paginated news articles
-  const getPaginatedNews = () => {
-    const startIndex = (newsCurrentPage - 1) * newsItemsPerPage;
-    const endIndex = startIndex + newsItemsPerPage;
-    return loadedNewsArticles.slice(startIndex, endIndex);
-  };
-
-  // Get paginated comparisons
-  const getPaginatedComparisons = () => {
-    const startIndex = (comparisonCurrentPage - 1) * comparisonItemsPerPage;
-    const endIndex = startIndex + comparisonItemsPerPage;
-    return loadedCarComparisons.slice(startIndex, endIndex);
-  };
   return (
-    <section className="w-full py-16 bg-white">
+    <section className="w-full py-16 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold text-slate-900 mb-3">{title}</h2>
@@ -221,7 +100,7 @@ const NewsAndComparisonsSection = ({
         <Tabs
           defaultValue="news"
           className="w-full"
-          onValueChange={handleTabChange}
+          onValueChange={setActiveTab}
         >
           <div className="flex justify-center mb-6">
             <TabsList className="bg-slate-100">
@@ -258,7 +137,7 @@ const NewsAndComparisonsSection = ({
                     carApiService
                       .getNewsArticles()
                       .then((articles) => {
-                        setLoadedNewsArticles(articles);
+                        setNewsArticles(articles);
                         setError(null);
                       })
                       .catch((err) => {
@@ -271,27 +150,14 @@ const NewsAndComparisonsSection = ({
                   }}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  <RefreshCcw className="mr-2 h-4 w-4" />
                   Retry
                 </Button>
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {loadedNewsArticles.length > 0
-                    ? getPaginatedNews().map((article) => (
-                        <NewsArticle
-                          key={article.id}
-                          title={article.title}
-                          description={article.description}
-                          date={article.date}
-                          category={article.category}
-                          imageUrl={article.imageUrl}
-                          url={article.url}
-                        />
-                      ))
-                    : // Fallback to mock data if API fails but doesn't throw an error
-                      newsArticles
+                  {newsArticles.length > 0
+                    ? newsArticles
                         .slice(0, 6)
                         .map((article) => (
                           <NewsArticle
@@ -303,81 +169,92 @@ const NewsAndComparisonsSection = ({
                             imageUrl={article.imageUrl}
                             url={article.url}
                           />
-                        ))}
+                        ))
+                    : // Fallback to sample data if API fails
+                      [
+                        {
+                          id: "news-1",
+                          title:
+                            "The Future of Electric Vehicles: What to Expect in 2024",
+                          description:
+                            "Electric vehicles are rapidly evolving with longer ranges, faster charging times, and more affordable options. Here's what industry experts predict for the coming year.",
+                          date: "December 15, 2023",
+                          category: "Electric",
+                          imageUrl:
+                            "https://images.unsplash.com/photo-1593941707882-a56bbc8427f2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                          url: "/news/future-of-evs-2024",
+                        },
+                        {
+                          id: "news-2",
+                          title: "Top 10 Most Fuel-Efficient SUVs of 2023",
+                          description:
+                            "SUVs don't have to be gas guzzlers. We've compiled a list of the most fuel-efficient SUVs on the market, including hybrids and plug-in options.",
+                          date: "November 28, 2023",
+                          category: "SUVs",
+                          imageUrl:
+                            "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                          url: "/news/fuel-efficient-suvs-2023",
+                        },
+                        {
+                          id: "news-3",
+                          title:
+                            "New Safety Features Becoming Standard in 2024 Models",
+                          description:
+                            "Automakers are adding more advanced safety features as standard equipment. Learn about the latest technologies that are becoming commonplace in new vehicles.",
+                          date: "October 15, 2023",
+                          category: "Safety",
+                          imageUrl:
+                            "https://images.unsplash.com/photo-1580273916550-e323be2ae537?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                          url: "/news/standard-safety-features-2024",
+                        },
+                        {
+                          id: "news-4",
+                          title:
+                            "The Rise of Subscription Services in the Auto Industry",
+                          description:
+                            "From feature upgrades to vehicle swapping, subscription services are changing how consumers interact with their vehicles. Is this the future of car ownership?",
+                          date: "September 22, 2023",
+                          category: "Industry",
+                          imageUrl:
+                            "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                          url: "/news/auto-subscription-services",
+                        },
+                        {
+                          id: "news-5",
+                          title:
+                            "Best Time to Buy: When to Get the Best Deals on New Cars",
+                          description:
+                            "Timing your purchase can save you thousands. Our experts break down the best times of year to buy a new car and how to negotiate the best price.",
+                          date: "August 10, 2023",
+                          category: "Buying Guide",
+                          imageUrl:
+                            "https://images.unsplash.com/photo-1560958089-b8a1929cea89?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                          url: "/news/best-time-to-buy-new-car",
+                        },
+                        {
+                          id: "news-6",
+                          title:
+                            "How Chip Shortages Continue to Impact the Auto Market",
+                          description:
+                            "The global semiconductor shortage is still affecting vehicle production and prices. Here's the latest on how it's impacting consumers and when experts expect relief.",
+                          date: "July 5, 2023",
+                          category: "Industry",
+                          imageUrl:
+                            "https://images.unsplash.com/photo-1551836022-d5d88e9218df?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+                          url: "/news/chip-shortage-auto-market-impact",
+                        },
+                      ].map((article) => (
+                        <NewsArticle
+                          key={article.id}
+                          title={article.title}
+                          description={article.description}
+                          date={article.date}
+                          category={article.category}
+                          imageUrl={article.imageUrl}
+                          url={article.url}
+                        />
+                      ))}
                 </div>
-
-                {/* News Pagination */}
-                {loadedNewsArticles.length > 0 && newsTotalPages > 1 && (
-                  <Pagination className="my-6">
-                    <PaginationContent>
-                      {newsCurrentPage > 1 && (
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() =>
-                              setNewsCurrentPage(newsCurrentPage - 1)
-                            }
-                          />
-                        </PaginationItem>
-                      )}
-
-                      {Array.from(
-                        { length: newsTotalPages },
-                        (_, i) => i + 1,
-                      ).map((page) => {
-                        // Show first page, last page, and pages around current page
-                        if (
-                          page === 1 ||
-                          page === newsTotalPages ||
-                          (page >= newsCurrentPage - 1 &&
-                            page <= newsCurrentPage + 1)
-                        ) {
-                          return (
-                            <PaginationItem key={page}>
-                              <PaginationLink
-                                isActive={page === newsCurrentPage}
-                                onClick={() => setNewsCurrentPage(page)}
-                              >
-                                {page}
-                              </PaginationLink>
-                            </PaginationItem>
-                          );
-                        }
-
-                        // Show ellipsis for gaps
-                        if (page === 2 && newsCurrentPage > 3) {
-                          return (
-                            <PaginationItem key="ellipsis-start">
-                              <PaginationEllipsis />
-                            </PaginationItem>
-                          );
-                        }
-
-                        if (
-                          page === newsTotalPages - 1 &&
-                          newsCurrentPage < newsTotalPages - 2
-                        ) {
-                          return (
-                            <PaginationItem key="ellipsis-end">
-                              <PaginationEllipsis />
-                            </PaginationItem>
-                          );
-                        }
-
-                        return null;
-                      })}
-
-                      {newsCurrentPage < newsTotalPages && (
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() =>
-                              setNewsCurrentPage(newsCurrentPage + 1)
-                            }
-                          />
-                        </PaginationItem>
-                      )}
-                    </PaginationContent>
-                  </Pagination>
-                )}
 
                 <div className="flex justify-center mt-8">
                   <Button variant="outline" className="group">
@@ -390,119 +267,26 @@ const NewsAndComparisonsSection = ({
           </TabsContent>
 
           <TabsContent value="comparisons" className="space-y-8">
-            {isLoading && activeTab === "comparisons" ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 text-blue-600 animate-spin mb-4" />
-                <p className="text-gray-500">Loading comparisons...</p>
-              </div>
-            ) : error && activeTab === "comparisons" ? (
-              <div className="text-center py-12">
-                <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                <p className="text-red-500 mb-4">{error}</p>
-                <Button
-                  onClick={() => {
-                    setIsLoading(true);
-                    carApiService
-                      .getCarComparisons()
-                      .then((comparisons) => {
-                        setLoadedCarComparisons(comparisons);
-                        setError(null);
-                      })
-                      .catch((err) => {
-                        console.error("Error retrying comparisons fetch:", err);
-                        setError(
-                          "Failed to load car comparisons. Please try again later.",
-                        );
-                      })
-                      .finally(() => setIsLoading(false));
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Retry
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 justify-items-center">
-                  {loadedCarComparisons.length > 0
-                    ? getPaginatedComparisons().map((comparison) => (
-                        <CarComparison
-                          key={comparison.id}
-                          car1={comparison.car1}
-                          car2={comparison.car2}
-                          specs={comparison.specs}
-                          comparisonLink={comparison.comparisonLink}
-                        />
-                      ))
-                    : // Fallback to mock data if API fails but doesn't throw an error
-                      carComparisons
-                        .slice(0, 2)
-                        .map((comparison) => (
-                          <CarComparison
-                            key={comparison.id}
-                            car1={comparison.car1}
-                            car2={comparison.car2}
-                            specs={comparison.specs}
-                            comparisonLink={comparison.comparisonLink}
-                          />
-                        ))}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sampleComparisons.map((comparison) => (
+                <NewsArticle
+                  key={comparison.id}
+                  title={comparison.title}
+                  description={comparison.description}
+                  date={comparison.date}
+                  category={comparison.category}
+                  imageUrl={comparison.imageUrl}
+                  url={comparison.url}
+                />
+              ))}
+            </div>
 
-                {/* Comparisons Pagination */}
-                {loadedCarComparisons.length > 0 &&
-                  comparisonTotalPages > 1 && (
-                    <Pagination className="my-6">
-                      <PaginationContent>
-                        {comparisonCurrentPage > 1 && (
-                          <PaginationItem>
-                            <PaginationPrevious
-                              onClick={() =>
-                                setComparisonCurrentPage(
-                                  comparisonCurrentPage - 1,
-                                )
-                              }
-                            />
-                          </PaginationItem>
-                        )}
-
-                        {Array.from(
-                          { length: comparisonTotalPages },
-                          (_, i) => i + 1,
-                        ).map((page) => (
-                          <PaginationItem key={page}>
-                            <PaginationLink
-                              isActive={page === comparisonCurrentPage}
-                              onClick={() => setComparisonCurrentPage(page)}
-                            >
-                              {page}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-
-                        {comparisonCurrentPage < comparisonTotalPages && (
-                          <PaginationItem>
-                            <PaginationNext
-                              onClick={() =>
-                                setComparisonCurrentPage(
-                                  comparisonCurrentPage + 1,
-                                )
-                              }
-                            />
-                          </PaginationItem>
-                        )}
-                      </PaginationContent>
-                    </Pagination>
-                  )}
-
-                <div className="flex justify-center mt-8">
-                  <Button variant="outline" className="group">
-                    View All Comparisons
-                    <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                </div>
-              </>
-            )}
+            <div className="flex justify-center mt-8">
+              <Button variant="outline" className="group">
+                View All Comparisons
+                <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

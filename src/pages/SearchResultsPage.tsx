@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Header from "../components/Header";
+import NavigationMenu from "../components/NavigationMenu";
 import Footer from "../components/Footer";
 import SearchBar from "../components/SearchBar";
 import CarCard from "../components/CarCard";
@@ -27,6 +27,7 @@ import {
   Filter,
   SlidersHorizontal,
   ChevronDown,
+  ChevronUp,
   Search,
   Car,
   Fuel,
@@ -37,6 +38,18 @@ import {
   Loader2,
 } from "lucide-react";
 import carApiService, { Car as CarType, SearchFilters } from "../services/api";
+
+interface SearchFilters {
+  make: string;
+  model: string;
+  priceRange: [number, number];
+  condition: string;
+  keyword?: string;
+  fuelType?: string;
+  year?: number;
+  yearRange?: string;
+  transmission?: string;
+}
 
 const SearchResultsPage = () => {
   const location = useLocation();
@@ -49,6 +62,7 @@ const SearchResultsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [filtersVisible, setFiltersVisible] = useState(true);
   const [sortOption, setSortOption] = useState("relevance");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   // Get search params from URL
@@ -65,6 +79,12 @@ const SearchResultsPage = () => {
     ],
     condition: searchParams.get("condition") || "all",
     keyword: searchParams.get("keyword") || "",
+    fuelType: searchParams.get("fuelType") || undefined,
+    year: searchParams.get("year")
+      ? parseInt(searchParams.get("year") || "0")
+      : undefined,
+    yearRange: searchParams.get("yearRange") || undefined,
+    transmission: searchParams.get("transmission") || undefined,
   };
 
   // Initialize current page from URL if available
@@ -112,6 +132,7 @@ const SearchResultsPage = () => {
 
   // Update URL search params based on filters
   const updateSearchParams = () => {
+    // Update URL with search params
     const params = new URLSearchParams();
 
     if (filters.make) params.set("make", filters.make);
@@ -122,7 +143,12 @@ const SearchResultsPage = () => {
       params.set("maxPrice", filters.priceRange[1].toString());
     if (filters.condition !== "all") params.set("condition", filters.condition);
     if (filters.keyword) params.set("keyword", filters.keyword);
+    if (filters.fuelType) params.set("fuelType", filters.fuelType);
+    if (filters.year) params.set("year", filters.year.toString());
+    if (filters.yearRange) params.set("yearRange", filters.yearRange);
+    if (filters.transmission) params.set("transmission", filters.transmission);
     if (sortOption !== "relevance") params.set("sort", sortOption);
+    if (sortDirection === "desc") params.set("direction", "desc");
     if (currentPage > 1) params.set("page", currentPage.toString());
 
     // Update URL without reloading the page
@@ -149,6 +175,11 @@ const SearchResultsPage = () => {
       );
     }
     if (filters.keyword) active.push(`Keyword: ${filters.keyword}`);
+    if (filters.fuelType) active.push(`Fuel Type: ${filters.fuelType}`);
+    if (filters.year) active.push(`Year: ${filters.year}`);
+    if (filters.yearRange) active.push(`Year: ${filters.yearRange}`);
+    if (filters.transmission)
+      active.push(`Transmission: ${filters.transmission}`);
 
     setActiveFilters(active);
   };
@@ -172,8 +203,20 @@ const SearchResultsPage = () => {
 
   // Handle sort change
   const handleSortChange = (value: string) => {
-    setSortOption(value);
-    // In a real app, you would update the API call to include sorting
+    // If selecting the same option, toggle direction
+    if (value === sortOption) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortOption(value);
+      // Set default direction based on sort type
+      if (value === "price") {
+        setSortDirection("asc"); // Low to high by default
+      } else if (value === "year" || value === "mileage") {
+        setSortDirection("desc"); // Newest/lowest first by default
+      } else {
+        setSortDirection("asc");
+      }
+    }
   };
 
   // Handle removing a filter
@@ -187,6 +230,12 @@ const SearchResultsPage = () => {
     if (filterType === "condition") updatedFilters.condition = "all";
     if (filterType === "price") updatedFilters.priceRange = [0, 100000];
     if (filterType === "keyword") updatedFilters.keyword = "";
+    if (filterType === "fuel") updatedFilters.fuelType = undefined;
+    if (filterType === "year") {
+      updatedFilters.year = undefined;
+      updatedFilters.yearRange = undefined;
+    }
+    if (filterType === "transmission") updatedFilters.transmission = undefined;
 
     setFilters(updatedFilters);
     setCurrentPage(1);
@@ -200,6 +249,10 @@ const SearchResultsPage = () => {
       priceRange: [0, 100000],
       condition: "all",
       keyword: "",
+      fuelType: undefined,
+      year: undefined,
+      yearRange: undefined,
+      transmission: undefined,
     });
     setCurrentPage(1);
   };
@@ -221,7 +274,7 @@ const SearchResultsPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Header />
+      <NavigationMenu />
 
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="mb-6">
@@ -463,13 +516,13 @@ const SearchResultsPage = () => {
                         (fuel) => (
                           <Button
                             key={fuel}
-                            variant="outline"
+                            variant={
+                              filters.fuelType === fuel ? "default" : "outline"
+                            }
                             size="sm"
                             className="text-xs justify-start"
                             onClick={() => {
-                              // In a real app, you would add fuel type to filters
-                              // For now, just update the keyword
-                              setFilters({ ...filters, keyword: fuel });
+                              setFilters({ ...filters, fuelType: fuel });
                               setCurrentPage(1);
                             }}
                           >
@@ -491,33 +544,104 @@ const SearchResultsPage = () => {
                   </h3>
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      {[
-                        2024,
-                        2023,
-                        2022,
-                        2021,
-                        2020,
-                        "2015-2019",
-                        "Pre-2015",
-                      ].map((year) => (
-                        <Button
-                          key={year.toString()}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs justify-start"
-                          onClick={() => {
-                            // In a real app, you would add year to filters
-                            // For now, just update the keyword
-                            setFilters({
-                              ...filters,
-                              keyword: year.toString(),
-                            });
-                            setCurrentPage(1);
-                          }}
-                        >
-                          {year}
-                        </Button>
-                      ))}
+                      {[2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017].map(
+                        (year) => (
+                          <Button
+                            key={year.toString()}
+                            variant={
+                              filters.year === year ? "default" : "outline"
+                            }
+                            size="sm"
+                            className="text-xs justify-start"
+                            onClick={() => {
+                              setFilters({
+                                ...filters,
+                                year: year,
+                              });
+                              setCurrentPage(1);
+                            }}
+                          >
+                            {year}
+                          </Button>
+                        ),
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant={
+                          filters.yearRange === "2015-2019"
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        className="text-xs justify-start"
+                        onClick={() => {
+                          setFilters({
+                            ...filters,
+                            yearRange: "2015-2019",
+                            year: undefined,
+                          });
+                          setCurrentPage(1);
+                        }}
+                      >
+                        2015-2019
+                      </Button>
+                      <Button
+                        variant={
+                          filters.yearRange === "Pre-2015"
+                            ? "default"
+                            : "outline"
+                        }
+                        size="sm"
+                        className="text-xs justify-start"
+                        onClick={() => {
+                          setFilters({
+                            ...filters,
+                            yearRange: "Pre-2015",
+                            year: undefined,
+                          });
+                          setCurrentPage(1);
+                        }}
+                      >
+                        Pre-2015
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Transmission */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
+                    <Gauge className="mr-2 h-4 w-4 text-blue-600" />
+                    Transmission
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {["Automatic", "Manual", "CVT", "Semi-Automatic"].map(
+                        (transmission) => (
+                          <Button
+                            key={transmission}
+                            variant={
+                              filters.transmission === transmission
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            className="text-xs justify-start"
+                            onClick={() => {
+                              setFilters({
+                                ...filters,
+                                transmission: transmission,
+                              });
+                              setCurrentPage(1);
+                            }}
+                          >
+                            {transmission}
+                          </Button>
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
@@ -541,25 +665,52 @@ const SearchResultsPage = () => {
 
               <div className="flex items-center">
                 <span className="text-sm text-gray-500 mr-2">Sort by:</span>
-                <Select value={sortOption} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-[180px] h-9">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="relevance">Relevance</SelectItem>
-                    <SelectItem value="price_low">
-                      Price: Low to High
-                    </SelectItem>
-                    <SelectItem value="price_high">
-                      Price: High to Low
-                    </SelectItem>
-                    <SelectItem value="year_new">Year: Newest First</SelectItem>
-                    <SelectItem value="year_old">Year: Oldest First</SelectItem>
-                    <SelectItem value="mileage_low">
-                      Mileage: Low to High
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center space-x-2">
+                  <Select value={sortOption} onValueChange={handleSortChange}>
+                    <SelectTrigger className="w-[140px] h-9">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="relevance">Relevance</SelectItem>
+                      <SelectItem value="price">Price</SelectItem>
+                      <SelectItem value="year">Year</SelectItem>
+                      <SelectItem value="mileage">Mileage</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {sortOption !== "relevance" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-2"
+                      onClick={() =>
+                        setSortDirection(
+                          sortDirection === "asc" ? "desc" : "asc",
+                        )
+                      }
+                    >
+                      {sortDirection === "asc" ? (
+                        <span className="flex items-center">
+                          <ChevronUp className="h-4 w-4 mr-1" />
+                          {sortOption === "price"
+                            ? "Low to High"
+                            : sortOption === "year"
+                              ? "Oldest First"
+                              : "Low to High"}
+                        </span>
+                      ) : (
+                        <span className="flex items-center">
+                          <ChevronDown className="h-4 w-4 mr-1" />
+                          {sortOption === "price"
+                            ? "High to Low"
+                            : sortOption === "year"
+                              ? "Newest First"
+                              : "High to Low"}
+                        </span>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
 

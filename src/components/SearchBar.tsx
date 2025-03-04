@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -11,13 +10,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Slider } from "./ui/slider";
-import carApiService from "../services/api";
-
-interface SearchBarProps {
-  onSearch?: (filters: SearchFilters) => void;
-  className?: string;
-  initialFilters?: Partial<SearchFilters>;
-}
+import { cn } from "@/lib/utils";
 
 export interface SearchFilters {
   make: string;
@@ -25,6 +18,16 @@ export interface SearchFilters {
   priceRange: [number, number];
   condition: string;
   keyword?: string;
+  fuelType?: string;
+  year?: number;
+  yearRange?: string;
+  transmission?: string;
+}
+
+interface SearchBarProps {
+  onSearch?: (filters: SearchFilters) => void;
+  className?: string;
+  initialFilters?: Partial<SearchFilters>;
 }
 
 const SearchBar = ({
@@ -32,14 +35,17 @@ const SearchBar = ({
   className = "",
   initialFilters,
 }: SearchBarProps) => {
-  const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     make: initialFilters?.make || "",
     model: initialFilters?.model || "",
-    priceRange: initialFilters?.priceRange || [5000, 50000],
+    priceRange: initialFilters?.priceRange || [0, 100000],
     condition: initialFilters?.condition || "all",
     keyword: initialFilters?.keyword || "",
+    fuelType: initialFilters?.fuelType || undefined,
+    year: initialFilters?.year || undefined,
+    yearRange: initialFilters?.yearRange || undefined,
+    transmission: initialFilters?.transmission || undefined,
   });
 
   // Mock data for dropdowns
@@ -55,6 +61,11 @@ const SearchBar = ({
     "Tesla",
     "Nissan",
     "Hyundai",
+    "Kia",
+    "Volkswagen",
+    "Mazda",
+    "Subaru",
+    "Lexus",
   ];
 
   const carModels: Record<string, string[]> = {
@@ -76,6 +87,11 @@ const SearchBar = ({
     Tesla: ["Model 3", "Model Y", "Model S", "Model X", "Cybertruck"],
     Nissan: ["Altima", "Rogue", "Sentra", "Pathfinder", "Murano", "Leaf"],
     Hyundai: ["Elantra", "Tucson", "Santa Fe", "Sonata", "Palisade", "Kona"],
+    Kia: ["Telluride", "Sportage", "Sorento", "K5", "Soul", "EV6"],
+    Volkswagen: ["Jetta", "Tiguan", "Atlas", "Golf", "ID.4", "Taos"],
+    Mazda: ["CX-5", "CX-9", "Mazda3", "Mazda6", "MX-5 Miata", "CX-30"],
+    Subaru: ["Outback", "Forester", "Crosstrek", "Impreza", "Legacy", "Ascent"],
+    Lexus: ["RX", "ES", "NX", "IS", "GX", "UX"],
   };
 
   const conditions = ["All Conditions", "New", "Used", "Certified Pre-Owned"];
@@ -113,7 +129,7 @@ const SearchBar = ({
   const handleConditionChange = (value: string) => {
     setFilters({
       ...filters,
-      condition: value,
+      condition: value.toLowerCase(),
     });
   };
 
@@ -131,62 +147,24 @@ const SearchBar = ({
     });
   };
 
-  const handleSearch = async () => {
-    try {
-      // Call the API with the filters
-      const searchResults = await carApiService.searchCars(filters);
-
-      // Call the onSearch prop with the filters and results if provided
-      if (onSearch) {
-        onSearch(filters);
-      }
-
-      // Collapse the expanded view after search
-      setIsExpanded(false);
-
-      // Navigate to search results page with query parameters
-      const searchParams = new URLSearchParams();
-      if (filters.make && filters.make !== "All Makes")
-        searchParams.set("make", filters.make);
-      if (filters.model && filters.model !== "All Models")
-        searchParams.set("model", filters.model);
-      if (filters.priceRange[0] > 0)
-        searchParams.set("minPrice", filters.priceRange[0].toString());
-      if (filters.priceRange[1] < 100000)
-        searchParams.set("maxPrice", filters.priceRange[1].toString());
-      if (filters.condition && filters.condition !== "all")
-        searchParams.set("condition", filters.condition);
-      if (filters.keyword) searchParams.set("keyword", filters.keyword);
-
-      navigate(`/search?${searchParams.toString()}`);
-    } catch (error) {
-      console.error("Error searching cars:", error);
-      // Navigate anyway even if the API call fails
-      const searchParams = new URLSearchParams();
-      if (filters.make && filters.make !== "All Makes")
-        searchParams.set("make", filters.make);
-      if (filters.model && filters.model !== "All Models")
-        searchParams.set("model", filters.model);
-      if (filters.priceRange[0] > 0)
-        searchParams.set("minPrice", filters.priceRange[0].toString());
-      if (filters.priceRange[1] < 100000)
-        searchParams.set("maxPrice", filters.priceRange[1].toString());
-      if (filters.condition && filters.condition !== "all")
-        searchParams.set("condition", filters.condition);
-      if (filters.keyword) searchParams.set("keyword", filters.keyword);
-
-      navigate(`/search?${searchParams.toString()}`);
-      setIsExpanded(false);
+  const handleSearch = () => {
+    if (onSearch) {
+      onSearch(filters);
     }
+    setIsExpanded(false);
   };
 
   const handleReset = () => {
     setFilters({
       make: "",
       model: "",
-      priceRange: [5000, 50000],
+      priceRange: [0, 100000],
       condition: "all",
       keyword: "",
+      fuelType: undefined,
+      year: undefined,
+      yearRange: undefined,
+      transmission: undefined,
     });
   };
 
@@ -194,17 +172,30 @@ const SearchBar = ({
     setIsExpanded(!isExpanded);
   };
 
+  // Format price for display
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+
   return (
-    <div className={`bg-white rounded-lg shadow-lg p-4 ${className}`}>
+    <div className={cn("bg-white rounded-lg shadow-lg p-4", className)}>
       {/* Basic Search Bar */}
       <div className="flex flex-col sm:flex-row items-center gap-2">
         <div className="relative flex-1 w-full">
           <Input
             type="text"
             placeholder="Search by make, model, or keyword"
-            className="pl-10 pr-4 py-3 w-full rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="pl-10 pr-4 py-3 w-full rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#0073ff]/20 focus:border-[#0073ff]"
             value={filters.keyword || ""}
             onChange={handleKeywordChange}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSearch();
+            }}
           />
           <Search
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -223,7 +214,7 @@ const SearchBar = ({
           />
         </Button>
         <Button
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md w-full sm:w-auto"
+          className="bg-[#0073ff] hover:bg-[#005cd9] text-white px-6 py-3 rounded-md w-full sm:w-auto"
           onClick={handleSearch}
         >
           Search
@@ -278,7 +269,12 @@ const SearchBar = ({
               Condition
             </label>
             <Select
-              value={filters.condition}
+              value={
+                filters.condition === "all"
+                  ? "All Conditions"
+                  : filters.condition.charAt(0).toUpperCase() +
+                    filters.condition.slice(1)
+              }
               onValueChange={handleConditionChange}
             >
               <SelectTrigger className="w-full">
@@ -300,12 +296,12 @@ const SearchBar = ({
                 Price Range
               </label>
               <span className="text-sm text-gray-500">
-                ${filters.priceRange[0].toLocaleString()} - $
-                {filters.priceRange[1].toLocaleString()}
+                {formatPrice(filters.priceRange[0])} -{" "}
+                {formatPrice(filters.priceRange[1])}
               </span>
             </div>
             <Slider
-              defaultValue={[5000, 50000]}
+              defaultValue={[0, 100000]}
               min={0}
               max={100000}
               step={1000}
@@ -326,7 +322,7 @@ const SearchBar = ({
             </Button>
             <Button
               onClick={handleSearch}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-[#0073ff] hover:bg-[#005cd9] text-white"
             >
               Apply Filters
             </Button>
